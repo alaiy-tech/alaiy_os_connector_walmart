@@ -19,7 +19,10 @@ def test_connection():
         return {"success": False, "message": str(e)}
 
     try:
-        client.get("items")
+        # The token endpoint itself is the real auth check -- it rejects a
+        # bad Client ID / Secret with its own 401/403 and costs nothing on
+        # the data APIs, unlike calling GET /v3/items just to see if it 200s.
+        client._refresh_token()
         return {"success": True, "message": "Connected successfully."}
     except WalmartAPIError as e:
         msg = str(e)
