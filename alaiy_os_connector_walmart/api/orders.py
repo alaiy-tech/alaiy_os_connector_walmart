@@ -8,9 +8,11 @@ from alaiy_os_connector_walmart.walmart import orders as _orders
 
 
 @frappe.whitelist()
-def get_orders(created_after=None, status=None, limit=20, next_cursor=None):
+def get_orders(created_after=None, created_before=None, status=None, sku=None,
+                customer_order_id=None, limit=20, next_cursor=None):
     return _orders.get_orders(
-        created_after=created_after, status=status, limit=int(limit), next_cursor=next_cursor,
+        created_after=created_after, created_before=created_before, status=status,
+        sku=sku, customer_order_id=customer_order_id, limit=int(limit), next_cursor=next_cursor,
     )
 
 

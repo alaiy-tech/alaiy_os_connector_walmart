@@ -46,6 +46,8 @@ def order_line_to_row(order, line):
         "channel": "walmart",
         "order_id": order.get("purchaseOrderId"),
         "sku": line.get("item", {}).get("sku"),
+        "product_name": line.get("item", {}).get("productName"),
+        "line_number": line.get("lineNumber"),
         "quantity": int(qty.get("amount", 0) or 0),
         "revenue": round(revenue, 2),
         "status": normalize_status(order_line_status),

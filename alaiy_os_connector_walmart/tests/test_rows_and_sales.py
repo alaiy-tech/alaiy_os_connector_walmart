@@ -6,11 +6,15 @@ no frappe DB. Run with:
   bench --site <site> run-tests --module alaiy_os_connector_walmart.tests.test_rows_and_sales
 """
 
+import datetime as _dt
 import unittest
 from unittest.mock import patch
 
 from alaiy_os_connector_walmart.walmart.rows import normalize_status, order_to_rows
 from alaiy_os_connector_walmart.walmart import sales
+
+_TODAY = _dt.date.today().isoformat()
+_TWO_WEEKS_AGO = (_dt.date.today() - _dt.timedelta(days=14)).isoformat()
 
 
 def _order(order_id, order_date, lines):
@@ -64,7 +68,7 @@ class TestSales(unittest.TestCase):
         }
         with patch("alaiy_os_connector_walmart.walmart.sales.get_orders", return_value=rows_page), \
              patch("alaiy_os_connector_walmart.walmart.client.WalmartClient") as mock_client:
-            summary = sales.get_sales_summary("2026-09-01", "2026-09-18", client=mock_client())
+            summary = sales.get_sales_summary(_TWO_WEEKS_AGO, _TODAY, client=mock_client())
         self.assertEqual(summary["gmv"], 100.0)
         self.assertEqual(summary["units"], 1)
         self.assertEqual(summary["order_count"], 1)
@@ -81,12 +85,21 @@ class TestSales(unittest.TestCase):
         }
         with patch("alaiy_os_connector_walmart.walmart.sales.get_orders", return_value=rows_page), \
              patch("alaiy_os_connector_walmart.walmart.client.WalmartClient") as mock_client:
-            result = sales.get_revenue_by_sku("2026-09-01", "2026-09-18", client=mock_client())
+            result = sales.get_revenue_by_sku(_TWO_WEEKS_AGO, _TODAY, client=mock_client())
         self.assertEqual(result["by_sku"][0]["sku"], "B")
         self.assertEqual(result["by_sku"][0]["revenue"], 40.0)
         self.assertEqual(result["by_sku"][1]["sku"], "A")
         self.assertEqual(result["by_sku"][1]["revenue"], 20.0)
         self.assertEqual(result["by_sku"][1]["units"], 2)
+
+    def test_start_date_over_180_days_ago_is_refused(self):
+        too_old = (_dt.date.today() - _dt.timedelta(days=200)).isoformat()
+        with self.assertRaises(sales.WalmartDateRangeError):
+            sales._validate_range(too_old, _TODAY)
+
+    def test_end_before_start_is_refused(self):
+        with self.assertRaises(sales.WalmartDateRangeError):
+            sales._validate_range(_TODAY, _TWO_WEEKS_AGO)
 
 
 if __name__ == "__main__":

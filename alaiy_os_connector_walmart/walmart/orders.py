@@ -11,16 +11,25 @@ from alaiy_os_connector_walmart.walmart.client import WalmartClient
 from alaiy_os_connector_walmart.walmart.rows import order_to_rows
 
 
-def get_orders(client=None, created_after=None, status=None, limit=20, next_cursor=None):
+def get_orders(client=None, created_after=None, created_before=None, status=None,
+                sku=None, customer_order_id=None, limit=20, next_cursor=None):
     """Recent orders, normalized to one row per line item (shared row shape).
     `status` is a real Walmart order status: Created / Acknowledged /
-    Shipped / Delivered / Cancelled."""
+    Shipped / Delivered / Cancelled. Only orders from the last 180 days are
+    retrievable, and a single query cannot return more than 20000 orders --
+    both are Walmart's own limits, not something this client enforces."""
     client = client or WalmartClient()
     params = {"limit": min(limit, 200)}
     if created_after:
         params["createdStartDate"] = created_after
+    if created_before:
+        params["createdEndDate"] = created_before
     if status:
         params["status"] = status
+    if sku:
+        params["sku"] = sku
+    if customer_order_id:
+        params["customerOrderId"] = customer_order_id
     if next_cursor:
         params["nextCursor"] = next_cursor
 

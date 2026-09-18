@@ -117,20 +117,20 @@ class WalmartClient:
     # Request plumbing
     # ------------------------------------------------------------------
     def _request(self, method, path, params=None, json_body=None, timeout=30):
+        import time
+
         url = f"{API_BASE}/{path.lstrip('/')}"
         last_error = None
 
         for attempt in range(_MAX_ATTEMPTS):
-            if attempt:
-                import time
-
-                time.sleep(min(_BACKOFF_BASE_SECONDS**attempt, _MAX_WAIT_SECONDS))
             try:
                 resp = self._session.request(
                     method, url, headers=self._headers(), params=params, json=json_body, timeout=timeout,
                 )
             except requests.exceptions.RequestException as e:
                 last_error = str(e)
+                if attempt < _MAX_ATTEMPTS - 1:
+                    time.sleep(min(_BACKOFF_BASE_SECONDS**attempt, _MAX_WAIT_SECONDS))
                 continue
 
             if resp.status_code == 401 and attempt == 0:
@@ -139,10 +139,18 @@ class WalmartClient:
                 self._refresh_token()
                 continue
             if resp.status_code == 429:
+                # Walmart's own rate-limit docs: 429 carries Retry-After and
+                # limits are negotiated per contract (no fixed published
+                # number) -- honor the header when given rather than guessing
+                # a backoff that may be far too short or too long.
                 last_error = "Rate limited (429)"
+                if attempt < _MAX_ATTEMPTS - 1:
+                    self._sleep_for_retry(resp, attempt)
                 continue
             if resp.status_code >= 500:
                 last_error = f"HTTP {resp.status_code}: {resp.text[:200]}"
+                if attempt < _MAX_ATTEMPTS - 1:
+                    self._sleep_for_retry(resp, attempt)
                 continue
             if resp.status_code >= 400:
                 raise WalmartAPIError(f"HTTP {resp.status_code}: {resp.text[:500]}")
@@ -155,6 +163,19 @@ class WalmartClient:
                 raise WalmartAPIError(f"Response was not JSON: {resp.text[:200]}")
 
         raise WalmartAPIError(f"Request to {path} failed after {_MAX_ATTEMPTS} attempts: {last_error}")
+
+    def _sleep_for_retry(self, resp, attempt):
+        import time
+
+        retry_after = resp.headers.get("Retry-After")
+        if retry_after:
+            try:
+                wait = float(retry_after)
+            except ValueError:
+                wait = _BACKOFF_BASE_SECONDS**attempt
+        else:
+            wait = _BACKOFF_BASE_SECONDS**attempt
+        time.sleep(min(wait, _MAX_WAIT_SECONDS))
 
     def get(self, path, params=None, timeout=30):
         return self._request("GET", path, params=params, timeout=timeout)

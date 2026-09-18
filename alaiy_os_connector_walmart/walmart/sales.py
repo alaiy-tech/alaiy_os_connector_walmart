@@ -13,26 +13,51 @@ Done -- this aggregates operational order data, not settled/reconciled
 financials.
 """
 
+import datetime as _dt
+
 from alaiy_os_connector_walmart.walmart.client import WalmartClient
 from alaiy_os_connector_walmart.walmart.orders import get_orders
 
+# Walmart's own documented ceilings on GET /v3/orders: only orders from the
+# last 180 days are retrievable, and a single query cannot return more than
+# 20000 orders. 100 pages of 200 orders each is exactly that ceiling -- not
+# an arbitrary safety number.
 _PAGE_LIMIT = 200
-_MAX_PAGES = 200  # hard ceiling so a bad date range can't loop forever
+_MAX_PAGES = 100
+_MAX_RANGE_DAYS = 180
+
+
+class WalmartDateRangeError(Exception):
+    """Raised when the requested range exceeds what /v3/orders can retrieve."""
+
+
+def _validate_range(start_date, end_date):
+    start = _dt.datetime.strptime(start_date[:10], "%Y-%m-%d").date()
+    today = _dt.date.today()
+    if (today - start).days > _MAX_RANGE_DAYS:
+        raise WalmartDateRangeError(
+            f"start_date {start_date} is more than {_MAX_RANGE_DAYS} days ago -- "
+            "Walmart's Orders API only retrieves orders from the last 180 days."
+        )
+    if end_date:
+        end = _dt.datetime.strptime(end_date[:10], "%Y-%m-%d").date()
+        if end < start:
+            raise WalmartDateRangeError(f"end_date {end_date} is before start_date {start_date}.")
 
 
 def _all_rows(client, start_date, end_date):
+    _validate_range(start_date, end_date)
     rows = []
     cursor = None
     for _ in range(_MAX_PAGES):
         page = get_orders(
-            client=client, created_after=start_date, limit=_PAGE_LIMIT, next_cursor=cursor,
+            client=client, created_after=start_date, created_before=end_date,
+            limit=_PAGE_LIMIT, next_cursor=cursor,
         )
         rows.extend(page["orders"])
         cursor = page.get("nextCursor")
         if not cursor:
             break
-    if end_date:
-        rows = [r for r in rows if not r["created_at"] or r["created_at"][:10] <= end_date]
     return rows
 
 
@@ -64,7 +89,9 @@ def get_revenue_by_sku(start_date, end_date, client=None):
     by_sku = {}
     for r in counted:
         sku = r["sku"] or "UNKNOWN"
-        entry = by_sku.setdefault(sku, {"sku": sku, "revenue": 0.0, "units": 0})
+        entry = by_sku.setdefault(
+            sku, {"sku": sku, "product_name": r.get("product_name"), "revenue": 0.0, "units": 0}
+        )
         entry["revenue"] += r["revenue"]
         entry["units"] += r["quantity"]
 

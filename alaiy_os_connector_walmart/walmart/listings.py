@@ -43,13 +43,22 @@ def get_listing_by_sku(sku, client=None):
 
 def _item_row(item):
     price = item.get("price", {}) or {}
+    unpublished_reasons = (item.get("unpublishedReasons") or {}).get("reason") or []
+    if isinstance(unpublished_reasons, str):
+        unpublished_reasons = [unpublished_reasons]
     return {
         "sku": item.get("sku"),
+        "wpid": item.get("wpid"),
         "product_name": item.get("productName"),
+        "product_type": item.get("productType"),
         "gtin": item.get("gtin"),
         "upc": item.get("upc"),
         "status": item.get("lifecycleStatus"),
         "published_status": item.get("publishedStatus"),
+        # Why an UNPUBLISHED item isn't live -- empty for anything else.
+        # This is the field that makes "list unpublished listings" actually
+        # actionable instead of just a status label.
+        "unpublished_reasons": unpublished_reasons,
         "price": price.get("amount"),
         "currency": price.get("currency"),
     }
