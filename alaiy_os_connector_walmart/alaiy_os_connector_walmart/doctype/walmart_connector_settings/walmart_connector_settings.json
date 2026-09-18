@@ -1,0 +1,106 @@
+{
+  "creation": "2026-09-18 00:00:00.000000",
+  "docstatus": 0,
+  "doctype": "DocType",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "is_enabled",
+    "sb_connection",
+    "walmart_client_id",
+    "walmart_client_secret",
+    "walmart_channel_type",
+    "sb_token",
+    "walmart_access_token",
+    "walmart_token_expires_at",
+    "sb_schedule",
+    "walmart_listings_sync_interval"
+  ],
+  "fields": [
+    {
+      "default": "0",
+      "fieldname": "is_enabled",
+      "fieldtype": "Check",
+      "label": "Enable Walmart Marketplace"
+    },
+    {
+      "fieldname": "sb_connection",
+      "fieldtype": "Section Break",
+      "label": "API Connection"
+    },
+    {
+      "description": "From Walmart Seller Center -> Settings -> API Keys. Alaiy's pooled credentials are used when this is blank (enterprise override).",
+      "fieldname": "walmart_client_id",
+      "fieldtype": "Data",
+      "label": "Client ID"
+    },
+    {
+      "fieldname": "walmart_client_secret",
+      "fieldtype": "Password",
+      "label": "Client Secret"
+    },
+    {
+      "description": "WM_CONSUMER.CHANNEL.TYPE header value, assigned by Walmart per integration. Leave blank if not issued one.",
+      "fieldname": "walmart_channel_type",
+      "fieldtype": "Data",
+      "label": "Channel Type"
+    },
+    {
+      "fieldname": "sb_token",
+      "fieldtype": "Section Break",
+      "label": "Token Cache (live)"
+    },
+    {
+      "description": "Cached OAuth access token -- refreshed automatically 60s before Token Expires At. Not something to set by hand.",
+      "fieldname": "walmart_access_token",
+      "fieldtype": "Password",
+      "label": "Access Token (cached)",
+      "read_only": 1
+    },
+    {
+      "fieldname": "walmart_token_expires_at",
+      "fieldtype": "Datetime",
+      "label": "Token Expires At",
+      "read_only": 1
+    },
+    {
+      "fieldname": "sb_schedule",
+      "fieldtype": "Section Break",
+      "label": "Sync Schedule"
+    },
+    {
+      "default": "Disabled",
+      "description": "How often to refresh the listings cache in the background, independent of on-demand Ask Alaiy queries.",
+      "fieldname": "walmart_listings_sync_interval",
+      "fieldtype": "Select",
+      "label": "Listings Sync Interval",
+      "options": "Disabled\nHourly\nDaily\nWeekly",
+      "reqd": 1
+    }
+  ],
+  "is_single": 1,
+  "links": [],
+  "modified": "2026-09-18 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "Alaiy Os Connector Walmart",
+  "name": "Walmart Connector Settings",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": [],
+  "track_changes": 0
+}
