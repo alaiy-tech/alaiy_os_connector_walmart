@@ -74,8 +74,7 @@
       "fieldname": "walmart_listings_sync_interval",
       "fieldtype": "Select",
       "label": "Listings Sync Interval",
-      "options": "Disabled\nHourly\nDaily\nWeekly",
-      "reqd": 1
+      "options": "Disabled\nHourly\nDaily\nWeekly"
     }
   ],
   "is_single": 1,
