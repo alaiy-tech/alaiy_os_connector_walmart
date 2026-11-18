@@ -25,4 +25,21 @@ connector_meta = {
     "sync_items_label": "Refresh Listings",
     "is_enabled": 0,
     "connection_status": "untested",
+    "health": [
+        {
+            "key": "listings",
+            "label": "Listings refresh",
+            "direction": "pull",
+            "log_doctype": "Walmart Sync Log",
+            "log_filter": {"sync_type": "listings"},
+            "fields": {
+                "processed": "items_processed",
+                "changed": ["items_created", "items_updated"],
+                "failed": "items_failed",
+                "error": "error_message",
+            },
+            # Started on demand; no scheduler job runs it.
+            "scheduled": False,
+        },
+    ],
 }
