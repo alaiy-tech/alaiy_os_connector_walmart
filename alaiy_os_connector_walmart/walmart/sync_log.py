@@ -9,6 +9,12 @@ alaiy_os_connector_keepa/keepa/sync_log.py).
 import frappe
 from frappe.utils import now_datetime
 
+try:
+    from alaiy_os.health.runs import run_status
+except ImportError:  # core without Connector Health: keep the old behaviour
+    def run_status(processed, failed, skipped=0, error=None):
+        return "success"
+
 
 def get_or_create_log(sync_type, trigger, log_name=None):
     if log_name and frappe.db.exists("Walmart Sync Log", log_name):
@@ -50,7 +56,10 @@ def run_logged(sync_type, trigger, log_name, worker):
     _mark_running(log)
     try:
         counts = worker(log) or {}
-        _mark_finished(log, "success", **counts)
+        failed = counts.get("items_failed") or 0
+        status = run_status(counts.get("items_processed") or 0, failed, 0)
+        message = f"Every item failed ({failed}); see the log." if status == "failed" else None
+        _mark_finished(log, status, error_message=message, **counts)
     except Exception:
         _mark_finished(log, "failed", error_message=frappe.get_traceback())
         frappe.log_error(
